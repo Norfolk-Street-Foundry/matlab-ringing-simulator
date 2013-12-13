@@ -1,5 +1,5 @@
 % FUNCTION genringing
-%  genringing( bellset, rows, output_file, start_rounds, end_rounds, peal_time, strike_data)
+%  genringing( bellset, rows, output_file, strike_data, peal_time, lowndes_output, start_rounds, end_rounds)
 %
 % bellset is a structure containing the following elements:
 %  - bells (1xN structure)
