@@ -130,7 +130,7 @@ end
 
 % Write the wave audio
 disp( ['Writing ' output_file] );
-wavwrite( audio_data, bellset.fs, output_file);
+audiowrite( output_file, audio_data, bellset.fs);
 
 % This function converts rows into audio data given the selected
 % strike_data and bellset
