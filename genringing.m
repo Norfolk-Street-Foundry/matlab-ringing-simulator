@@ -274,6 +274,12 @@ if (strcmpi(strike_data.error_distribution, 'normal'))
     else
         thisError = randn * strike_data.bell(thisBell).stdev.back;
     end
+elseif (strcmpi(strike_data.error_distribution, 'uniform'))
+    if (handstroke)        
+        thisError = sqrt(12) * (rand-0.5) * strike_data.bell(thisBell).stdev.hand;
+    else
+        thisError = sqrt(12) * (rand-0.5) * strike_data.bell(thisBell).stdev.back;
+    end
 else
     error(['Unrecognised error distribution model : ' strike_data.error_distribution]);
 end
