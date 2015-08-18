@@ -16,7 +16,7 @@
 %  The output format is deduced based on file extension:
 %   .wav - Audio output
 %   .txt - Lowndes output
-%   .xml - The 'Toast' XML data format
+%   .xml / .strikex - The 'Toast' XML data format
 %
 % start_rounds / end_rounds are the number of rounds starting and ending
 % the touch. Defaults to 2 if not specified
@@ -45,6 +45,8 @@
 % handstroke gap of one bell time and 'sequential' as the method of stroke
 % data selection
 function genringing( bellset, rows, outputs, strike_data, peal_time, start_rounds, end_rounds)
+
+VERSION = '0.1';
 
 % Provide defaults for variables which may not have been provided
 if ( ~exist('start_rounds', 'var'))
@@ -91,12 +93,12 @@ for index = 1:length(outputs)
         % Let's deduce the file-type based on extension
         if strcmpi(output_file(end-3:end), '.wav')
             wave_file = output_file;
-        end
-        if strcmpi(output_file(end-3:end), '.xml')
+        elseif strcmpi(output_file(end-3:end), '.xml') || strcmpi(output_file(end-7:end), '.strikex')
             xml_file = output_file;
-        end
-        if strcmpi(output_file(end-3:end), '.txt')
+        elseif strcmpi(output_file(end-3:end), '.txt')
             lowndes_file = output_file;
+        else
+            warning('genringing: sorry, don''t know what type of file %s is supposed to be', output_file);
         end
     end
 end
@@ -122,20 +124,16 @@ rows = [ ones(start_rounds,1) * (1:number_of_bells); rows; ones(end_rounds,1) * 
 [audio_data, strikes] = genAudioData( number_of_bells, bellset, rows, peal_time, strike_data);
 % audio_data is the output wave audio and strikes are the supposed strike positions
 
-% If we're generating lowndes, now is the time to do it!
-% Strikes are assumed to be already sorted by time at this point
 if ~isempty(lowndes_file)
     % Write the Lowndes
     disp( ['Writing Lowndes: ' lowndes_file] );
     writeLowndesFile( lowndes_file, strikes);
 end
 
-% If we're generating XML data output, now is the time to do it!
-% Strikes are assumed to be already sorted by time at this point
 if ~isempty(xml_file)
     % Write the XML out
-    disp( ['Skipping XML gen: ' xml_file] );
-    %writeLowndesFile( xml_file, strikes);
+    disp( ['Writing XML file: ' xml_file] );
+    writeXMLFile( xml_file, strikes, number_of_bells, VERSION);
 end
 
 if ~isempty( wave_file )
@@ -412,6 +410,82 @@ else
     warning('genringing: could not create Lowndes file %s', lowndes_file)
 end
 fclose(lowndes_fid);
+
+
+function writeXMLFile( xml_file, strikes, NUM_BELLS, VERSION)
+
+SOURCE_NAME = 'RingingSim';
+
+documentNode = com.mathworks.xml.XMLUtils.createDocument('transcription');
+
+rootNode = documentNode.getDocumentElement;
+rootNode.setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+rootNode.setAttribute('xsi:schemaLocation', 'http://drichards2.github.io/toast-visualiser/xsd/enhanced-strike-definition.xsd');
+rootNode.setAttribute('version', '1');
+
+datasources = documentNode.createElement('dataSources');
+sim_datasource = documentNode.createElement('dataSource');
+sim_datasource_name = documentNode.createElement('name');
+sim_datasource_name.appendChild(documentNode.createTextNode('Matlab ringing simulator'));
+sim_datasource_version = documentNode.createElement('version');
+sim_datasource_version.appendChild(documentNode.createTextNode(VERSION));
+sim_datasource_comment = documentNode.createElement('comment');
+sim_datasource_comment.appendChild(documentNode.createTextNode('Matlab ringing simulator - fantastic things are about to happen'));
+sim_datasource.appendChild( sim_datasource_name );
+datasources.appendChild(sim_datasource);
+rootNode.appendChild(datasources);
+
+renderlayers = documentNode.createElement('renderLayers');
+visualisation = documentNode.createElement('visualisation');
+visualisation_name = documentNode.createElement('name');
+visualisation_name.appendChild(documentNode.createTextNode('Matlab Ringing Simulator'));
+visualisation_description = documentNode.createElement('description');
+visualisation_description.appendChild(documentNode.createTextNode('Nothing to see here'));
+visualisation_prioritylist = documentNode.createElement('priorityList');
+visualisation_prioritylist_source = documentNode.createElement('source');
+visualisation_prioritylist_source.appendChild(documentNode.createTextNode(SOURCE_NAME));
+visualisation_prioritylist.appendChild(visualisation_prioritylist_source);
+
+visualisation.appendChild(visualisation_name);
+visualisation.appendChild(visualisation_description);
+visualisation.appendChild(visualisation_prioritylist);
+renderlayers.appendChild(visualisation);
+
+rootNode.appendChild(renderlayers);
+
+strikedata  = documentNode.createElement('strikeData');
+for runstrikes = 1:length(strikes)
+    if mod(runstrikes, NUM_BELLS) == 1
+        rowDelimiter = documentNode.createElement('rowDelimiter');
+        rowDelimiter.setAttribute('source', SOURCE_NAME);
+        strikedata.appendChild(rowDelimiter);
+    end
+    strike_node = documentNode.createElement('strike');
+    strike_bell = documentNode.createElement('bell');
+    strike_bell.appendChild(documentNode.createTextNode(sprintf('%d', strikes(runstrikes).bell)));
+    strike_node.appendChild( strike_bell );
+    strike_original = documentNode.createElement('original');
+    strike_original.appendChild(documentNode.createTextNode(sprintf('%.3f', strikes(runstrikes).actual_time)));
+    strike_node.appendChild( strike_original );
+    
+    strike_modelout = documentNode.createElement('modelOutput');
+    strike_modelout.setAttribute('source', SOURCE_NAME);
+    strike_modelout_time = documentNode.createElement('time');
+    strike_modelout_time.appendChild(documentNode.createTextNode(sprintf('%.3f', strikes(runstrikes).ideal_time)));
+    strike_modelout.appendChild( strike_modelout_time );
+    strike_node.appendChild( strike_modelout );
+    
+    strikedata.appendChild( strike_node );
+end
+
+rootNode.appendChild(strikedata);
+
+
+
+
+xmlwrite( xml_file, documentNode);
+
+
 
 function [sortedStruct, index] = nestedSortStruct(aStruct, fieldNamesCell, directions)
 % [sortedStruct index] = nestedSortStruct(aStruct, fieldNamesCell, directions)
