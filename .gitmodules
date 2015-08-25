@@ -1,0 +1,6 @@
+[submodule "toolkits/lowndes-processing-tools"]
+	path = toolkits/lowndes-processing-tools
+	url = ../lowndes-processing-tools.git
+[submodule "toolkits/strikex-processing-tools"]
+	path = toolkits/strikex-processing-tools
+	url = https://github.com/drichards2/strikex-processing-tools.git
