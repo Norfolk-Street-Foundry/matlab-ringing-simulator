@@ -49,9 +49,12 @@ audio = zeros( round(total_length * fs), bellset.channels);
 
 audio_data_internals = [];
 
+p = progress.Bar('Generating audio', length(lowndes_data.strike) );
+
 % All the preamble is over
 for writeBlows = 1:length(lowndes_data.strike)
    thisStrike = lowndes_data.strike(writeBlows);
+   p.update();
       
    % Set a couple of convenience variables
    thisBell = thisStrike.bell;
@@ -88,6 +91,7 @@ for writeBlows = 1:length(lowndes_data.strike)
    audio( strike_sample + audio_indexer, :) = audio( strike_sample + audio_indexer, :) + bell_audio_data;
 end
 
+p.finish();
 
 
     
